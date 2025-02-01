@@ -1,0 +1,22 @@
+Usage:
+
+Play Mode: The robots will take random actions to move, collect resources, and build panels.
+Edit Mode: Click on the grid to place robots, obstacles, resources, or panels.
+Left-click: Place a robot.
+Right-click: Toggle an obstacle.
+Middle-click: Place a resource.
+Ctrl + Left-click: Place a solar panel.
+Toggle Mode: Press the Space key to switch between play and edit modes.
+Quit: Press Esc to exit the simulation.
+
+Code Structure: 
+
+MultiRobotSolarFarmEnv: The environment class that handles the grid, robots, and game logic.
+MultiRobotRandomAgent: A simple agent that takes random actions.
+run_interactive_game: The main function that initializes the Pygame interface and runs the simulation.
+
+Requirements: 
+
+Python 3.7+
+Pygame
+NumPy
