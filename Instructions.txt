@@ -1,22 +1,23 @@
-SOLAR GROVE — QUICK START
+SOLAR GROVE — PRODUCTION CHALLENGE
 
 Install Python 3.10+ and run:
   pip install -r requirements.txt
-  python game.py
+  python game.py --designer ppo
 
-Default controller: greedy pathfinding baseline (no machine learning).
-Train PPO:
-  python train.py --steps 500000 --seed 42 --output models/solar_ppo
-Play with trained PPO:
-  python game.py --agent ppo --model models/solar_ppo.zip
-Compare controllers:
-  python evaluate.py --model models/solar_ppo.zip --episodes 30
+The bundled trained PPO policy chooses array deployment, direction and tilt.
+Two robots execute its design using deterministic BFS navigation.
 
-SPACE: pause/resume | R: restart map | N: next seed
-TAB: cycle loaded controllers | +/-: speed | ESC: quit
-E: fresh map editor; press again to run the edited map
-In editor: 1 rock, 2 salvage, 3 erase; left-click a tile to paint.
-Robot tiles are protected; robot count stays fixed for PPO compatibility.
-The editor may create disconnected maps; benchmarks use connected maps.
+Press ENTER, type produce 1 kW, then ENTER to submit.
+L: region | [ / ]: solar time | D: sunlight sweep
+SPACE: pause | R: restart | ESC: cancel command or exit
 
-Full technique, environment rules, training details and limitations: README.md
+Train a new policy:
+  python train_array.py --steps 200000 --seed 42 --output models/array_ppo
+Evaluate:
+  python evaluate_array.py --model models/array_ppo.zip --episodes 200 --output runs/comparison
+Play the new checkpoint:
+  python game.py --designer ppo --array-model models/array_ppo.zip
+Planner comparison:
+  python game.py --designer planner
+
+Full ML details and measured limitations: README.md and docs/ML_RESULTS.md

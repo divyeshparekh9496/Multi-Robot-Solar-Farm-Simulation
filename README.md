@@ -14,7 +14,7 @@ Solar Grove is a playable machine-learning project combining **deep reinforcemen
 
 **200,704 training steps · 2,048 training scenarios · 200 held-out evaluation scenarios · bundled trained checkpoint**
 
-[Play](#quick-start) · [ML architecture](#how-the-ml-works) · [Results](#held-out-results) · [Train and evaluate](#train-and-evaluate) · [Detailed experiment report](docs/ML_RESULTS.md)
+[Play](#production-challenge) · [ML architecture](#how-the-ml-works) · [Results](#held-out-results) · [Train and evaluate](#train-and-evaluate) · [Detailed experiment report](docs/ML_RESULTS.md)
 
 ## What this project demonstrates
 
@@ -26,7 +26,11 @@ Solar Grove is a playable machine-learning project combining **deep reinforcemen
 
 **Scope of learning:** PPO learns the array design. Robot navigation and construction scheduling use deterministic algorithms. This is a centralized design policy executed by two simulated robots, rather than decentralized multi-agent RL or learned robot locomotion.
 
-## Quick start
+## Production challenge
+
+The only game mode in this repository: command a power target and let the trained PPO policy design the array while robots build it.
+
+### Quick start
 
 Python **3.10+** recommended. The game includes a lightweight pretrained array policy; no training or API keys are needed to try it.
 
@@ -148,7 +152,7 @@ python -m unittest discover -s tests -v
 python game.py --designer ppo --screenshot docs/solar-target.png --frames 120
 ```
 
-The current suite contains **24 tests**, including Gymnasium contracts, seeded resets, RL/game physics agreement, saved-policy loading, robot execution, series-string completion, production commands and UI rendering. The screenshot command runs offscreen and exits automatically.
+The current suite contains **15 tests**, including Gymnasium contracts, seeded resets, RL/game physics agreement, saved-policy loading, robot execution, series-string completion, production commands and UI rendering. The screenshot command runs offscreen and exits automatically.
 
 ## Repository map
 
@@ -163,18 +167,6 @@ The current suite contains **24 tests**, including Gymnasium contracts, seeded r
 | [docs/ML_RESULTS.md](docs/ML_RESULTS.md) | Experiment methodology, limitations and résumé wording |
 | [tests/](tests/) | Environment, inference, physics and UI checks |
 
-## Earlier experiment: direct robot control
-
-The repository also preserves a **separate centralized PPO experiment** in which a single policy selects joint actions for two robots collecting salvage and building panels. It uses different observations, rewards and abstract energy units. Its recorded PPO run underperformed both baselines; those results are retained for transparency and should not be confused with the meadow benchmark above.
-
-```bash
-python game.py --classic
-python train.py --steps 500000 --seed 42 --output models/solar_ppo
-python game.py --agent ppo --model models/solar_ppo.zip
-```
-
-See [classic environment documentation and original results](docs/CLASSIC_MODE.md).
-
 ## References
 
 - [Proximal Policy Optimization paper](https://arxiv.org/abs/1707.06347)
@@ -182,9 +174,3 @@ See [classic environment documentation and original results](docs/CLASSIC_MODE.m
 - [Gymnasium environment creation](https://gymnasium.farama.org/introduction/create_custom_env/)
 - [NOAA solar geometry](https://gml.noaa.gov/grad/solcalc/solareqns.PDF)
 - [Sandia photovoltaic array principles](https://pvpmc.sandia.gov/modeling-guide/3-dc-array-iv/)
-
-## Classic game preview
-
-![Original Solar Grove expedition running the greedy controller](docs/solar-grove.png)
-
-This screenshot shows the **greedy baseline in the original salvage environment**, not PPO performance. Its energy values are abstract game units. The classic PPO controller requires training its own checkpoint; the meadow game's bundled array-design policy is a separate model.
