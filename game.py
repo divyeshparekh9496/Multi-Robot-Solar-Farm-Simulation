@@ -215,4 +215,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    # Keep the original RL viewer available and its CLI compatible.
+    if '--classic' in sys.argv:
+        sys.argv.remove('--classic')
+        main()
+    elif any(flag in sys.argv for flag in ('--agent', '--model', '--seed')):
+        main()
+    else:
+        from solar_target import main as target_main
+        target_main()

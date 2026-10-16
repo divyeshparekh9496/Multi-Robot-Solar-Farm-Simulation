@@ -1,0 +1,50 @@
+{
+  "model": "checkpoints/array_ppo.zip",
+  "episodes": 200,
+  "held_out_seed_range": [
+    20000,
+    20199
+  ],
+  "evaluation": "Deterministic PPO; same scenarios for every controller; design output before robot animation.",
+  "summary": {
+    "ppo": {
+      "mean_power_w": 767.3397665405273,
+      "std_power_w": 325.99707256035515,
+      "success_rate": 0.535,
+      "success_rate_on_feasible_targets": 0.9385964912280702,
+      "feasible_targets": 114,
+      "mean_panels": 12.0,
+      "mean_target_coverage": 0.8297075958633697
+    },
+    "random": {
+      "mean_power_w": 441.91836297512054,
+      "std_power_w": 309.6886578227372,
+      "success_rate": 0.235,
+      "success_rate_on_feasible_targets": 0.41228070175438597,
+      "feasible_targets": 114,
+      "mean_panels": 11.52,
+      "mean_target_coverage": 0.5654358478484308
+    },
+    "fixed_south": {
+      "mean_power_w": 514.1976448822021,
+      "std_power_w": 345.10040298650796,
+      "success_rate": 0.275,
+      "success_rate_on_feasible_targets": 0.4824561403508772,
+      "feasible_targets": 114,
+      "mean_panels": 12.0,
+      "mean_target_coverage": 0.624962505515026
+    },
+    "planner": {
+      "mean_power_w": 685.1579377230845,
+      "std_power_w": 289.41233850419115,
+      "success_rate": 0.57,
+      "success_rate_on_feasible_targets": 1.0,
+      "feasible_targets": 114,
+      "mean_panels": 7.92,
+      "mean_target_coverage": 0.8443351564279853
+    }
+  },
+  "model_sha256": "edaa7e567c91b1926bc8883da4ba934609b1a974c32959c35b1b7d78ab356750",
+  "training_timesteps": 200704,
+  "training_seed": 42
+}

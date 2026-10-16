@@ -1,0 +1,25 @@
+{
+  "algorithm": "PPO",
+  "environment": "ArrayDesignEnv",
+  "version": 1,
+  "training_seed": 42,
+  "actual_timesteps": 200704,
+  "scenario_seeds": [
+    0,
+    2047
+  ],
+  "observation_size": 21,
+  "actions": 21,
+  "decisions_per_episode": 3,
+  "network": [
+    64,
+    64
+  ],
+  "reward": "2 * target coverage increase - 0.04 per rack + terminal success/shortfall",
+  "sha256": "edaa7e567c91b1926bc8883da4ba934609b1a974c32959c35b1b7d78ab356750",
+  "versions": {
+    "torch": "2.4.0",
+    "stable_baselines3": "2.7.1",
+    "gymnasium": "1.1.1"
+  }
+}
