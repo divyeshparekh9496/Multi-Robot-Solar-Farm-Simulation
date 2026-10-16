@@ -1,4 +1,4 @@
-"""Goal-conditioned PPO design environment, separate from the classic robot RL task."""
+"""Goal-conditioned PPO environment for the production challenge."""
 from pathlib import Path
 import math
 import numpy as np
@@ -106,7 +106,7 @@ class LearnedDesigner:
         torch.set_num_threads(1)
         self.model = PPO.load(str(Path(path)), device='cpu')
         if self.model.observation_space.shape != (21,) or self.model.action_space.n != 21:
-            raise ValueError('Use an array PPO checkpoint, not the classic robot policy.')
+            raise ValueError('Checkpoint does not match the production-challenge observation and action spaces.')
 
     def apply(self, farm):
         env = ArrayDesignEnv()

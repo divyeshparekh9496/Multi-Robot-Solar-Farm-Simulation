@@ -1,186 +1,176 @@
-# Solar Grove · Multi-Robot Solar Farm
+# Solar Grove · Reinforcement Learning for Solar-Array Design
 
-A retro meadow game powered by a trained **Proximal Policy Optimization (PPO)** array-design policy. Give a production target; the neural policy selects rack deployment, directions and tilts, and two robots build the farm. A separate classic salvage environment provides the original centralized robot PPO experiment.
+**Give a production target. A trained PPO policy designs the array. Two robots build it.**
 
-![Solar Grove pixel-art interface, running the greedy baseline](docs/solar-grove.png)
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-actor--critic-EE4C2C?logo=pytorch&logoColor=white)
+![Reinforcement Learning](https://img.shields.io/badge/Reinforcement_Learning-PPO-7456A6)
+![Gymnasium](https://img.shields.io/badge/Environment-Gymnasium-168B70)
+![Stable Baselines3](https://img.shields.io/badge/Training-Stable--Baselines3-286C95)
 
-The screenshot shows the **greedy baseline**, not PPO performance. The game works immediately with that baseline; PPO requires training a checkpoint first. Energy is an abstract game unit, not a physical solar-yield estimate.
+Solar Grove is a playable machine-learning project combining **deep reinforcement learning, simulated solar physics, and robot task execution**. A neural policy observes sunlight, tree shadows and a requested power target, then chooses rack deployment, panel direction and tilt. A retro pixel-art meadow makes its decisions visible as robots construct the farm.
 
-## New default: production challenge
+![Solar Grove running the trained PPO policy in a mountain meadow](docs/solar-target.png)
 
-Run `python game.py` to command an autonomous robot team. The default mission is **produce 1,000 watts**. Press **Enter**, type `produce 800 W` or `produce 1 kW`, then press **Enter** to dispatch a new mission. The bundled PPO neural policy chooses rack deployment, directions and tilts. Two robots execute that learned design using BFS navigation. You do not need to place or wire panels.
+**200,704 training steps · 2,048 training scenarios · 200 held-out evaluation scenarios · bundled trained checkpoint**
 
-![Autonomous production mission](docs/solar-target.png)
+[Play](#production-challenge) · [ML architecture](#how-the-ml-works) · [Results](#held-out-results) · [Train and evaluate](#train-and-evaluate) · [Detailed experiment report](docs/ML_RESULTS.md)
 
-- **Enter:** type and submit a production command. **Escape** cancels entry.
-- **L:** cycle California, Kenya, Australia and Norway; the team replans.
-- **[ / ]:** change local solar time by half an hour; the team replans.
-- **D:** toggle a sunlight sweep, ending at 18:00. Replanning happens every half solar hour.
-- **Space:** pause construction and the sunlight sweep. **R:** reset the default mission. **Esc:** exit.
+## What this project demonstrates
 
-### Machine learning in the meadow game
+- **Custom RL environment:** a Gymnasium environment with explicit observations, actions, rewards, episode boundaries and seeded scenarios.
+- **Deep reinforcement learning:** an actual PyTorch actor-critic policy trained with Stable-Baselines3 PPO, directly controlling array-design decisions in the game.
+- **Reproducible evaluation:** paired scenarios shared by learned, random, fixed-orientation and deterministic-planner controllers; raw CSV/JSON results are included.
+- **ML-to-simulation integration:** checkpoint loading, deterministic inference, construction job assignment and collision-aware BFS navigation.
+- **Engineering verification:** environment-contract checks, physics consistency, model serialization, robot execution and offscreen UI tests.
 
-The game loads `checkpoints/array_ppo.zip` by default. The journal and footer explicitly show **PPO** when this checkpoint drives decisions. `python game.py --designer planner` selects the deterministic comparison controller; `--designer ppo` requires a valid checkpoint and never silently substitutes the planner. If the default checkpoint is absent, automatic mode labels the planner fallback honestly.
+**Scope of learning:** PPO learns the array design. Robot navigation and construction scheduling use deterministic algorithms. This is a centralized design policy executed by two simulated robots, rather than decentralized multi-agent RL or learned robot locomotion.
 
-- **Technique:** model-free PPO reinforcement learning with a PyTorch actor-critic MLP, trained using Stable-Baselines3. No planner demonstrations or supervised target labels are used.
-- **Observations:** 21 floats encoding the sun vector, 12 tree-shadow indicators, requested power, current decision stage, accumulated design power and rack count.
-- **Actions:** three sequential rack decisions. Each chooses skip or one of 20 facing/tilt combinations. Each built rack has four modules in series; complete strings connect in parallel at an ideal 80 V.
-- **Reward:** increased target coverage, a per-rack material cost, and terminal success/shortfall feedback. Training evaluates completed array output; construction navigation is not learned.
-- **Training:** 200,704 environment steps, seed 42, eight vector environments, 2,048 seeded training scenarios with varied region, solar time, target and tree height. Two hidden layers of 64 units.
-- **Held-out evaluation:** 200 paired scenarios, seeds 20000–20199, excluded from the training pool. PPO achieves **53.5% overall target success**, compared with **23.5% random**, **27.5% fixed south-facing**, and **57.0% planner**. Among the 114 targets the planner can meet, PPO meets **93.9%**.
+## Production challenge
 
-PPO beats these simple baselines on this run, but does not beat the planner's success rate or material efficiency: it deploys all 12 panels on these evaluation cases, while the planner averages 7.92. This is one training seed and simulated ideal DC power, not a field-validated solar or autonomous-hardware result. The classic policy below is a different model and has different results.
+The only game mode in this repository: command a power target and let the trained PPO policy design the array while robots build it.
 
-```bash
-# Play the bundled learned policy
-python game.py --designer ppo
-# Train from scratch (does not overwrite the bundled checkpoint)
-python train_array.py --steps 200000 --seed 42 --output models/array_ppo
-# Evaluate the newly trained checkpoint
-python evaluate_array.py --model models/array_ppo.zip --episodes 200 --output runs/array-comparison
-# Play it explicitly
-python game.py --designer ppo --array-model models/array_ppo.zip
-```
+### Quick start
 
-[Detailed ML results](docs/ML_RESULTS.md), [paired evaluation CSV](docs/array-ppo-evaluation.csv), [summary](docs/array-ppo-evaluation.json), [learning trace](docs/array-ppo-learning.csv). The bundled 179 KB checkpoint and its training metadata are under `checkpoints/`. Training logs and newly generated models remain local.
-
-The 12-panel material budget is reusable. New commands or sunlight conditions can reclaim the old design; settings that change require robot construction again. This abstraction does not model physical transport or rewiring costs. Targets are instantaneous power in watts at the current sunlight conditions, not stored energy or guaranteed all-day output. If the learned design falls below the target, the game reports that outcome without claiming the target is physically impossible. The planner comparison searches row subsets and prefers fewer racks when it can meet the target.
-
-The original retro handheld RPG interface shows a Yosemite-inspired meadow, granite mountains, a creek, pines, roaming deer, rabbits and a sheep. Procedural sprites require no downloads. Wildlife stays outside the central construction plot and is decorative. North is up. Tree heights and distances are abstract tile units. Robots can travel under panels, build racks with spark animations, and return to their parking area. Empty rack frames show pending construction. Series wiring follows each rack; orthogonal cable runs connect to the combiner cabinet without crossing the meadow diagonally. One empty tile between rack rows provides a service aisle; it is a game spacing rule, not a calculated real-world clearance.
-
-The educational model uses an equinox sun vector based on latitude and local solar time, fixed 100 W panels (20 V, 5 A), cosine incidence, approximate clear-sky attenuation and tree ray shadows. Within a series string, voltage adds and the lowest panel exposure limits current. There are no bypass diodes, IV curves, wire losses, panel-to-panel shading, weather, seasons or geographic irradiance data. This is a game, not an installation design tool. Autonomous arrays use zero to three complete four-module strings. Each rack has internally consistent orientation and tilt; the policy can choose different settings per rack. A string stays disconnected until all four modules are built. The model sums completed string currents at a common ideal 80 V bus. Real string voltage limits, cold-weather open-circuit voltage, protective devices, earthing, conductor sizing and equipment ratings are not modeled. No IEC or NEC compliance is claimed.
-
-Background: [NOAA solar geometry](https://gml.noaa.gov/grad/solcalc/solareqns.PDF), [UCF shading experiment](https://energyresearch.ucf.edu/resources/use/USE-27-EffectOfShading.pdf), [Sandia series/parallel array principles](https://pvpmc.sandia.gov/modeling-guide/3-dc-array-iv/), [Australian government row-spacing guidance](https://www.energy.gov.au/solar/solar-system-design/design-considerations), [IEC 62548-1 scope](https://webstore.iec.ch/en/publication/110893). These references inform the simplifications; the game is not a compliance checker.
-
-Use `python game.py --classic` for the original salvage expedition described below. Its training environment, checkpoints and evaluation rules are unchanged; `--agent`, `--model` or `--seed` also select the classic viewer.
-
-## Classic expedition
-
-Python **3.10+** recommended (validated with Python 3.12).
+Python **3.10+** recommended. The game includes a lightweight pretrained array policy; no training or API keys are needed to try it.
 
 ```bash
 git clone https://github.com/divyeshparekh9496/Multi-Robot-Solar-Farm-Simulation.git
 cd Multi-Robot-Solar-Farm-Simulation
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+source .venv/bin/activate
+# Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python game.py
+python game.py --designer ppo
 ```
 
-`requirements-lock.txt` records the versions used for validation; use `pip install -r requirements-lock.txt` to reproduce that dependency set on a supported platform.
-
-The interface uses procedurally drawn pixel terrain, animated robots, salvage crates, solar arrays, and a live expedition HUD. No external sprites or API keys are required.
+Press **Enter**, type **`produce 1 kW`**, and press **Enter** again. Watch the policy select a design and the robot team build it. The journal labels the active PPO controller.
 
 | Control | Action |
 | --- | --- |
-| Space | Pause / resume |
-| R | Restart the same seeded map |
-| N | Start the next map |
-| Tab | Cycle available controllers (PPO appears when launched with a checkpoint) |
-| + / - | Change simulation speed |
-| E | Enter a fresh-map editor / resume the edited map |
-| 1 / 2 / 3, then left-click | Paint rock / salvage / erase in the editor |
-| Esc | Exit |
+| Enter | Type and submit a production order, such as `produce 800 W` |
+| L | Switch California, Kenya, Australia or Norway |
+| [ / ] | Move solar time backward / forward by half an hour |
+| D | Toggle a sunlight sweep; design decisions refresh every half solar hour |
+| Space | Pause construction and sunlight progression |
+| R | Restart the default mission |
+| Esc | Cancel command entry or exit |
 
-Editing starts a new episode and keeps the robot count fixed. Robot tiles cannot be painted. Custom editor maps may be disconnected and are for experimentation; benchmark maps are generated with connected terrain. Episodes stop at their time limit so their results remain visible.
+Commands are parsed locally using a small grammar; no language model is involved. Explicit `--designer ppo` requires the checkpoint and does not substitute a planner. `python game.py` automatically selects the bundled policy when present, otherwise displays the planner as the active controller.
 
-## Machine learning: centralized PPO
+## How the ML works
 
-One neural policy observes the full map and selects **one action for each robot**. Stable-Baselines3 supplies the actual PPO implementation, backed by PyTorch; this is not a random agent labeled as reinforcement learning.
+The learning task is **goal-conditioned, sequential array design**. At each of three rack positions, the policy chooses whether to deploy a rack and how to orient it. It learns from reward generated by the simulator, without planner demonstrations or supervised optimal-action labels.
 
-PPO collects trajectories, estimates advantages, and optimizes a clipped policy objective alongside a value function. It suits this sequential task because building a panel earlier can pay off for many later ticks. It supports the joint `MultiDiscrete` action space without enumerating a separate action for every possible joint combination.
-
-This is **centralized control with a shared reward**, not decentralized multi-agent PPO (MAPPO). Both robots' actions are produced from the same global state.
+```mermaid
+flowchart LR
+    A[Production target] --> B[Gymnasium observation]
+    S[Sun position and tree shadows] --> B
+    B --> C[PPO actor-critic neural network]
+    C --> D[Deploy or skip rack / direction / tilt]
+    D --> E[Four-panel series strings]
+    E --> F[Robot job allocation and BFS navigation]
+    F --> G[Visible construction and live DC power]
+    E --> H[Simulated power and reward during training]
+    H --> C
+```
 
 | RL component | Implementation |
 | --- | --- |
-| Environment | Headless `gymnasium.Env` in `solar_env.py` |
-| Observation | Obstacle, salvage and panel maps; one occupancy map per robot; normalized inventories; remaining time |
-| Shape | 323 float32 values in `[0, 1]` for the default 8×8 map and two robots |
-| Actions | `MultiDiscrete([6, 6])`: north, east, south, west, build, wait for each robot |
-| Policy | PPO `MlpPolicy`, two hidden layers of 128 units |
-| Reward | `0.1 × production − 0.02 × successful moves − 0.05 × invalid actions` per tick |
-| Episode | 300 ticks; time-limit truncation, no early terminal state |
-| Training | Four vectorized environments; seeded training; separate evaluation stream and best-checkpoint callback |
+| Algorithm | Model-free **Proximal Policy Optimization (PPO)** |
+| Framework | **PyTorch**, **Stable-Baselines3**, **Gymnasium** |
+| Policy network | `MlpPolicy`; two hidden layers of **64 units** |
+| Observation | **21 floats:** sun vector, 12 shadow indicators, target, decision stage, accumulated design power and rack count |
+| Action space | `Discrete(21)`: skip, or 4 facing directions × 5 tilt angles |
+| Episode | **3 decisions**, one for each available rack row |
+| Reward | Increased target coverage, material cost, terminal success / shortfall feedback |
+| Scenario variation | Region, solar time, production target and tree height |
+| Training setup | **8 vector environments**, seed **42**, **200,704 actual steps** |
+| Checkpoint | [Bundled policy](checkpoints/array_ppo.zip) and [metadata / SHA-256](checkpoints/array_ppo.json) |
 
-Collection is automatic when a robot has capacity. Each robot holds at most two materials; each panel consumes one. A panel yields one energy unit per tick, or two if it has at least one orthogonal panel neighbor. Building is not allowed on existing panels. Total return in the HUD is exactly the sum of learning rewards; raw cumulative energy is reported separately.
+For target coverage `c = min(power / target, 1)`, the per-decision reward is:
 
-Movement into a robot's starting cell is blocked for that tick, including swaps and following into a vacated cell. If both robots choose the same empty destination, the lower robot index wins. These deliberately conservative rules prevent overlapping robots. Reset places distinct robots, salvage and obstacles on connected terrain using the environment's seeded RNG.
-
-### Train and load PPO
-
-```bash
-python train.py --steps 500000 --seed 42 --output models/solar_ppo
-python game.py --agent ppo --model models/solar_ppo.zip
+```text
+2 × (new coverage − previous coverage)
+− 0.04 if a rack is deployed
++ terminal feedback: +0.5 for success, otherwise −0.5 × remaining coverage gap
 ```
 
-Training writes the final model, configuration metadata, episode-monitor CSVs and periodic evaluation records. The best evaluation checkpoint is saved under `models/solar_ppo_logs/best/best_model.zip`; you can load or evaluate it independently. Evaluation runs during training use a separate random stream starting at seed 10000. Final benchmark episodes explicitly reset to paired seeds starting at 20000.
+PPO optimizes a clipped policy objective alongside a value function. The actor chooses rack actions; the critic estimates expected return during training. The playable controller runs the saved policy in deterministic inference mode.
 
-Key settings: learning rate `3e-4`, rollout length `512` per environment, batch size `128`, discount `0.99`, GAE lambda `0.95`, clip range `0.2`, entropy coefficient `0.01`. Requested training steps round up to complete rollouts; metadata records the actual count. Checkpoints and training logs are local generated artifacts, excluded from Git.
+## Held-out results
 
-For a quick integration check rather than a performance experiment:
+The bundled checkpoint was evaluated on **200 paired scenarios**, seeds **20000–20199**, excluded from the training pool of seeds **0–2047**. Every controller receives the same sunlight, shadow conditions and target. Metrics measure completed design output before robot animation.
+
+| Controller | Overall target success | Success on 114 planner-feasible targets | Mean panels |
+| --- | ---: | ---: | ---: |
+| **PPO learned policy** | **53.5%** | **93.9% — 107 / 114** | 12.00 |
+| Random actions | 23.5% | 41.2% | 11.52 |
+| Fixed south-facing / 30° tilt | 27.5% | 48.2% | 12.00 |
+| Deterministic planner | 57.0% | 100.0% | 7.92 |
+
+**PPO improves overall success by 30 percentage points over random actions in this run.** It approaches the planner's feasible-target success rate, but does not exceed it or match its material efficiency.
+
+The 93.9% figure applies to the **114 targets the planner can meet**, not all 200 scenarios. PPO's overall success is 53.5%. It deploys all 12 panels in the recorded benchmark, so economical target-conditioned deployment remains an open problem. Results are from **one training seed**; the learning curve shows training return, not independent validation performance.
+
+Evidence: [experiment report](docs/ML_RESULTS.md) · [per-scenario CSV](docs/array-ppo-evaluation.csv) · [evaluation JSON](docs/array-ppo-evaluation.json) · [learning trace](docs/array-ppo-learning.csv).
+
+## Train and evaluate
+
+Train a fresh array policy without overwriting the bundled checkpoint:
 
 ```bash
-python train.py --steps 2048 --output models/smoke
-python game.py --agent ppo --model models/smoke.zip
+python train_array.py --steps 200000 --seed 42 --output models/array_ppo
+python evaluate_array.py --model models/array_ppo.zip --episodes 200 --output runs/array-comparison
+python game.py --designer ppo --array-model models/array_ppo.zip
 ```
 
-**A working training loop does not imply a strong learned policy.** The flattened-map policy and delayed construction rewards can make generalization difficult. Measure held-out performance before claiming that PPO improves coordination or beats a planner. No pretrained model is bundled for this **classic salvage** environment; the bundled meadow array checkpoint is a different policy.
-
-## Compare against baselines
+Evaluate the included checkpoint or run the planner comparison:
 
 ```bash
-# Baselines only; no checkpoint required
-python evaluate.py --episodes 30
-
-# Random, greedy, and PPO on exactly the same 30 map seeds
-python evaluate.py --model models/solar_ppo.zip --episodes 30 --output runs/comparison
+python evaluate_array.py --model checkpoints/array_ppo.zip --episodes 200 --output runs/bundled-evaluation
+python game.py --designer planner
 ```
 
-- **Random:** independently samples six actions per robot from a seeded RNG.
-- **Greedy planner:** breadth-first shortest paths, resource-target assignment, reserved movement destinations, and adjacency-aware panel placement. It does not learn.
-- **PPO:** deterministic inference from the supplied checkpoint, with no planner fallback.
+Requested training steps round up to full rollouts. Training writes a model, metadata and monitor logs; evaluation exports CSV and JSON. The bundled checkpoint has its own recorded hash and package versions. `requirements-lock.txt` records the repository's validation dependency set; exact retraining results can vary across versions and platforms.
 
-Evaluation exports per-episode CSV data and JSON summaries with population mean and standard deviation for energy, production, panels, return and invalid actions. All controllers share the same information and environment rules. Single-checkpoint results do not establish robustness across training seeds; repeat training seeds for stronger claims.
+## Solar-array model and game world
 
-## Verify and preview
+The farm sits in a Yosemite-inspired meadow with granite peaks, a creek, pines and decorative roaming wildlife. Original procedural pixel art requires no sprite downloads.
+
+- **Sunlight:** equinox sun direction and height vary with latitude and local solar time; cosine incidence and approximate clear-sky attenuation determine exposure.
+- **Shadows:** ray tests account for tree obstructions.
+- **Arrays:** up to three rows of four 100 W modules. Each row is a series string; completed equal-length strings connect in parallel at an ideal **80 V DC**.
+- **Construction:** robots follow job orders, assemble racks and return to parking. Cable runs follow rows and route to a combiner cabinet. Empty tiles between rows provide service aisles.
+
+Targets refer to **instantaneous simulated DC power**, not energy stored or guaranteed all-day output. The model omits seasons, measured irradiance, weather, panel-to-panel shading, bypass diodes, IV curves, electrical protection and real robot dynamics. Reconfiguration reuses an abstract 12-panel budget. Row spacing is a game rule, not a site-specific engineering calculation; **IEC / NEC compliance is not claimed**.
+
+## Verify
 
 ```bash
 python -m unittest discover -s tests -v
-python game.py --classic --screenshot docs/solar-grove.png --frames 22
+python game.py --designer ppo --screenshot docs/solar-target.png --frames 120
 ```
 
-Tests cover the Gymnasium contract, reproducible connected resets, material conservation, collision rules, inventory capacity, rewards, time limits, fixed observations, editor controls and offscreen rendering. The screenshot command uses SDL's offscreen driver and exits automatically.
+The current suite contains **15 tests**, including Gymnasium contracts, seeded resets, RL/game physics agreement, saved-policy loading, robot execution, series-string completion, production commands and UI rendering. The screenshot command runs offscreen and exits automatically.
 
-## Repository layout
+## Repository map
 
-```text
-solar_env.py              Environment, production, shared rewards and observations
-agents.py                 Random and greedy planning baselines
-game.py                   Indie-style Pygame viewer and scenario editor
-train.py                  PPO learning, evaluation callback and checkpoint saving
-evaluate.py               Paired held-out evaluations and CSV/JSON export
-tests/                    Environment and interface regression tests
-docs/solar-grove.png      Actual game screenshot using the greedy controller
-requirements-lock.txt     Validated dependency versions
-```
+| File / directory | Purpose |
+| --- | --- |
+| [array_rl.py](array_rl.py) | Gymnasium design environment and learned-policy adapter |
+| [train_array.py](train_array.py) | PPO training and checkpoint metadata |
+| [evaluate_array.py](evaluate_array.py) | Paired held-out benchmark against three baselines |
+| [solar_target.py](solar_target.py) | Sun / shadow physics, arrays, missions and robot execution |
+| [meadow_ui.py](meadow_ui.py) | Retro game rendering, wildlife and command controls |
+| [checkpoints/](checkpoints/) | Bundled trained policy and provenance |
+| [docs/ML_RESULTS.md](docs/ML_RESULTS.md) | Experiment methodology, limitations and résumé wording |
+| [tests/](tests/) | Environment, inference, physics and UI checks |
 
-## Scope and next steps
+## References
 
-This is a grid-based construction benchmark. It does not model robot dynamics, sunlight, shading, battery discharge, real watts, weather or hardware control. Adjacency bonuses are an explicit game mechanic. Useful next experiments include convolutional observation encoders, potential-based reward shaping, collision-fairness alternatives, and curriculum training. MAPPO would be a separate extension for decentralized policies.
-
-References: [PPO paper](https://arxiv.org/abs/1707.06347), [Stable-Baselines3 PPO](https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html), [Gymnasium custom environments](https://gymnasium.farama.org/introduction/create_custom_env/).
-
-## Recorded validation run
-
-A local run with training seed **42** completed **501,760 timesteps** (the requested 500,000 rounded to complete rollouts). Deterministic final-checkpoint inference was evaluated on **30 paired maps, seeds 20000–20029**:
-
-| Controller | Mean cumulative energy ± std | Mean panels | Mean episode return |
-| --- | ---: | ---: | ---: |
-| Random | 3196.8 ± 749.7 | 10.37 | 304.28 |
-| Greedy planner | 6648.4 ± 270.5 | 12.00 | 663.85 |
-| PPO, final checkpoint | 842.5 ± 778.7 | 2.13 | 60.59 |
-
-**PPO underperformed both baselines in this experiment.** This validates training, saving, loading and evaluation, but does not demonstrate a successful learned controller. Frequent invalid actions and poor transfer to new maps are unresolved limitations. The greedy controller remains the default for a useful interactive demo. The periodic best checkpoint was not evaluated in this table. Values are game units, and this is one training seed, not a statistically robust algorithm comparison.
-
-Raw records: [episode CSV](docs/ppo-evaluation.csv), [summary JSON](docs/ppo-evaluation.json). The trained checkpoint is a local artifact at `models/solar_ppo.zip` and is not included in the repository. Re-run training with the locked dependencies to conduct your own experiment; exact numerical reproduction can vary by platform.
+- [Proximal Policy Optimization paper](https://arxiv.org/abs/1707.06347)
+- [Stable-Baselines3 PPO](https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html)
+- [Gymnasium environment creation](https://gymnasium.farama.org/introduction/create_custom_env/)
+- [NOAA solar geometry](https://gml.noaa.gov/grad/solcalc/solareqns.PDF)
+- [Sandia photovoltaic array principles](https://pvpmc.sandia.gov/modeling-guide/3-dc-array-iv/)
