@@ -182,3 +182,9 @@ See [classic environment documentation and original results](docs/CLASSIC_MODE.m
 - [Gymnasium environment creation](https://gymnasium.farama.org/introduction/create_custom_env/)
 - [NOAA solar geometry](https://gml.noaa.gov/grad/solcalc/solareqns.PDF)
 - [Sandia photovoltaic array principles](https://pvpmc.sandia.gov/modeling-guide/3-dc-array-iv/)
+
+## Classic game preview
+
+![Original Solar Grove expedition running the greedy controller](docs/solar-grove.png)
+
+This screenshot shows the **greedy baseline in the original salvage environment**, not PPO performance. Its energy values are abstract game units. The classic PPO controller requires training its own checkpoint; the meadow game's bundled array-design policy is a separate model.
